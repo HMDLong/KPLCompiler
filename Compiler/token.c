@@ -66,6 +66,8 @@ char *tokenToString(TokenType tokenType) {
   case TK_IDENT: return "an identification";
   case TK_NUMBER: return "a number";
   case TK_CHAR: return "a constant char";
+  case TK_FLOAT: return "a float point number";
+  case TK_STRING: return "a constant string";
   case TK_EOF: return "end of file";
 
   case KW_PROGRAM: return "keyword PROGRAM";
@@ -75,6 +77,8 @@ char *tokenToString(TokenType tokenType) {
   case KW_INTEGER: return "keyword INTEGER";
   case KW_CHAR: return "keyword CHAR";
   case KW_ARRAY: return "keyword ARRAY";
+  case KW_STRING: return "keyword STRING";
+  case KW_FLOAT: return "keyword FLOAT";
   case KW_OF: return "keyword OF";
   case KW_FUNCTION: return "keyword FUNCTION";
   case KW_PROCEDURE: return "keyword PROCEDURE";

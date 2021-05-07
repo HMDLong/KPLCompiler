@@ -201,6 +201,10 @@ void compileConstant(void) {
       eat(TK_CHAR);
       compileConstant2();
       break;
+    case TK_STRING:
+      eat(TK_STRING);
+      compileConstant2();
+      break;
     default:
       compileConstant2();
       break;
@@ -210,11 +214,14 @@ void compileConstant(void) {
 void compileConstant2(void) {
   // TODO
   switch(lookAhead->tokenType){
-    case TK_CHAR:
-      eat(TK_CHAR);
+    case TK_IDENT:
+      eat(TK_IDENT);
       break;
     case TK_NUMBER:
       eat(TK_NUMBER);
+      break;
+    //follow
+    case SB_SEMICOLON:
       break;
     default:
       error(ERR_INVALIDCONSTANT, lookAhead->lineNo, lookAhead->colNo);
@@ -236,6 +243,9 @@ void compileType(void) {
       eat(KW_OF);
       compileType();
       break;
+    case KW_STRING:
+      eat(KW_STRING);
+      break;
     default: 
       error(ERR_INVALIDTYPE, lookAhead->lineNo, lookAhead->colNo);
       break;
@@ -247,6 +257,7 @@ void compileBasicType(void) {
   switch(lookAhead->tokenType){
     case KW_INTEGER: eat(KW_INTEGER); break;
     case KW_CHAR: eat(KW_CHAR); break;
+    case KW_STRING: eat(KW_STRING); break;
     default: 
       error(ERR_INVALIDBASICTYPE, lookAhead->lineNo, lookAhead->colNo);
       break;
@@ -255,21 +266,53 @@ void compileBasicType(void) {
 
 void compileParams(void) {
   // TODO
-  if(lookAhead->tokenType == SB_LPAR){
+  switch(lookAhead->tokenType){
+    //first
+    case SB_LPAR:
+      eat(SB_LPAR);
+      compileParam();
+      compileParams2();
+      eat(SB_RPAR);
+      break;
+    //follow
+    case SB_COLON:
+    case SB_SEMICOLON:
+      break;
+    //error
+    default:
+      error(ERR_INVALIDPARAM, lookAhead->lineNo, lookAhead->colNo);
+      break;
+  }
+  /*if(lookAhead->tokenType == SB_LPAR){
     eat(SB_LPAR);
     compileParam();
     compileParams2();
     eat(SB_RPAR);
-  }
+  }*/
 }
 
 void compileParams2(void) {
   // TODO
-  if(lookAhead->tokenType == SB_SEMICOLON){
+  switch(lookAhead->tokenType){
+    //first
+    case SB_SEMICOLON:
+      eat(SB_SEMICOLON);
+      compileParam();
+      compileParams2();
+      break;
+    //follow
+    case SB_RPAR:
+      break;
+    //error
+    default:
+      error(ERR_INVALIDPARAM, lookAhead->lineNo, lookAhead->colNo);
+      break;
+  }
+  /*if(lookAhead->tokenType == SB_SEMICOLON){
     eat(SB_SEMICOLON);
     compileParam();
     compileParams2();
-  }
+  }*/
 }
 
 void compileParam(void) {
@@ -300,11 +343,27 @@ void compileStatements(void) {
 
 void compileStatements2(void) {
   // TODO
-  if(lookAhead->tokenType == SB_SEMICOLON){
+  switch(lookAhead->tokenType){
+    case SB_SEMICOLON:
+      eat(SB_SEMICOLON);
+      compileStatement();
+      compileStatements2();
+      break;
+    //follow - block
+    case KW_END:
+    //follow - do_while
+    case KW_WHILE:
+      break;
+    //error
+    default:
+      error(ERR_INVALIDSTATEMENT, lookAhead->lineNo, lookAhead->colNo);
+      break;
+  }
+  /*if(lookAhead->tokenType == SB_SEMICOLON){
     eat(SB_SEMICOLON);
     compileStatement();
     compileStatements2();
-  }
+  }*/
 }
 
 void compileStatement(void) {
@@ -327,6 +386,9 @@ void compileStatement(void) {
   case KW_FOR:
     compileForSt();
     break;
+  case KW_DO:
+    compileDoWhileSt();
+    break;
     // EmptySt needs to check FOLLOW tokens
   case SB_SEMICOLON:
   case KW_END:
@@ -343,7 +405,8 @@ void compileAssignSt(void) {
   assert("Parsing an assign statement ....");
   // TODO
   eat(TK_IDENT);
-  compileIndexes();
+  if(lookAhead->tokenType == SB_LSEL)
+    compileIndexes();
   eat(SB_ASSIGN);
   compileExpression();
   assert("Assign statement parsed ....");
@@ -389,7 +452,7 @@ void compileWhileSt(void) {
   eat(KW_WHILE);
   compileCondition();
   eat(KW_DO);
-  compileStatements();
+  compileStatement();
   assert("While statement parsed ....");
 }
 
@@ -407,23 +470,89 @@ void compileForSt(void) {
   assert("For statement parsed ....");
 }
 
+void compileDoWhileSt(void){
+  assert("Parsing a do_while statement ....");
+  eat(KW_DO);
+  compileStatement();
+  if(lookAhead->tokenType == KW_WHILE){
+    eat(KW_WHILE);
+    compileCondition();
+    assert("Do_while statement parsed ....");
+  }
+  else error(ERR_INVALIDSTATEMENT, lookAhead->lineNo, lookAhead->colNo);
+}
+
 void compileArguments(void) {
   // TODO
-  if(lookAhead->tokenType == SB_LPAR){
+  switch(lookAhead->tokenType){
+    //first
+    case SB_LPAR:
+      eat(SB_LPAR);
+      compileExpression();
+      compileArguments2();
+      eat(SB_RPAR);
+      break;
+    //follow if no need arguments
+    //
+    case SB_SEMICOLON:
+    case KW_END:
+    case KW_BEGIN:
+    //follow - term2
+    case SB_TIMES:
+    case SB_SLASH:
+    //follow - expression3
+    //follow -- forSt
+    case KW_TO:
+    case KW_DO:
+    //follow -- arguments2
+    case SB_COMMA:
+    //follow -- conditions2
+    case SB_EQ:
+    case SB_NEQ:
+    case SB_LE:
+    case SB_LT:
+    case SB_GE:
+    case SB_GT:
+    //follow -- factor
+    case SB_RPAR:
+    //follow -- indexes
+    case SB_RSEL:
+    //follow -- ifSt
+    case KW_THEN:
+      break;
+    default:
+      error(ERR_INVALIDARGUMENTS, lookAhead->lineNo, lookAhead->colNo);
+      break;
+  }
+  /*if(lookAhead->tokenType == SB_LPAR){
     eat(SB_LPAR);
     compileExpression();
     compileArguments2();
     eat(SB_RPAR);
-  }
+  }*/
 }
 
 void compileArguments2(void) {
   // TODO
-  if(lookAhead->tokenType == SB_COMMA){
+  switch(lookAhead->tokenType){
+    case SB_COMMA:
+      eat(SB_COMMA);
+      compileExpression();
+      compileArguments2();
+      break;
+    //follow when done listing arugments
+    case SB_RPAR:
+      break;
+    //error
+    default:
+      error(ERR_INVALIDARGUMENTS, lookAhead->lineNo, lookAhead->colNo);
+      break; 
+  }
+  /*if(lookAhead->tokenType == SB_COMMA){
     eat(SB_COMMA);
     compileExpression();
     compileArguments2();
-  }
+  }*/
 }
 
 void compileCondition(void) {
@@ -467,6 +596,52 @@ void compileExpression2(void) {
 
 void compileExpression3(void) {
   // TODO
+  switch(lookAhead->tokenType){
+    //first
+    case SB_MINUS:
+      eat(SB_MINUS);
+      compileTerm();
+      compileExpression3();
+      break;
+    case SB_PLUS:
+      eat(SB_PLUS);
+      compileTerm();
+      compileExpression3();
+      break;
+    //follow - statements2
+    case SB_SEMICOLON:
+    //follow - statements
+    case KW_END:
+    case KW_BEGIN:
+    //follow - ElseSt
+    case KW_ELSE:
+    //follow - forSt
+    case KW_TO:
+    case KW_DO:
+    //follow - condition2
+    case SB_EQ:
+    case SB_NEQ:
+    case SB_LE:
+    case SB_LT:
+    case SB_GE:
+    case SB_GT:
+    //follow - factor
+    case SB_RPAR:
+    //follow - indexes
+    case SB_RSEL:
+    //follow - arguments2
+    case SB_COMMA:
+    //follow - ifSt
+    case KW_THEN:
+    //follow - Do_whileSt
+    case KW_WHILE:
+      break;
+    //error
+    default:
+      error(ERR_INVALIDEXPRESSION, lookAhead->lineNo, lookAhead->colNo);
+      break;
+  }
+  /*
   if(lookAhead->tokenType == SB_MINUS){
     eat(SB_MINUS);
     compileTerm();
@@ -477,6 +652,7 @@ void compileExpression3(void) {
     compileTerm();
     compileExpression3();
   }
+  */
 }
 
 void compileTerm(void) {
@@ -488,6 +664,7 @@ void compileTerm(void) {
 void compileTerm2(void) {
   // TODO
   switch(lookAhead->tokenType){
+    //first
     case SB_TIMES: 
       eat(SB_TIMES); 
       compileFactor(); 
@@ -498,7 +675,42 @@ void compileTerm2(void) {
       compileFactor(); 
       compileTerm2(); 
       break;
-    default: break;
+    case SB_PERCENT:
+      eat(SB_PERCENT);
+      compileFactor();
+      compileTerm2();
+      break;
+    //follow - expression3
+    case SB_PLUS:
+    case SB_MINUS:
+    //follow - forSt
+    case KW_TO:
+    case KW_DO:
+    //follow - condition2
+    case SB_EQ:
+    case SB_NEQ:
+    case SB_LE:
+    case SB_LT:
+    case SB_GE:
+    case SB_GT:
+    //follow - arguments2
+    case SB_COMMA:
+    //follow - statements2
+    case SB_SEMICOLON:
+    //follow - statements
+    case KW_END:
+    //follow - elseSt
+    case KW_ELSE:
+    //follow - ifSt
+    case KW_THEN:
+    //follow - arguments
+    case SB_RPAR:
+    //follow - indexes
+    case SB_RSEL:
+      break;
+    default: 
+      error(ERR_INVALIDTERM, lookAhead->lineNo, lookAhead->colNo);
+      break;
   }
 }
 
@@ -518,10 +730,13 @@ void compileFactor(void) {
       break;
     case TK_IDENT:
       eat(TK_IDENT);
-      if(lookAhead->tokenType == SB_LSEL) 
+      if(lookAhead->tokenType == SB_LSEL)
         compileIndexes();
       else if(lookAhead->tokenType == SB_LPAR) 
         compileArguments();
+      break;
+    case TK_STRING:
+      eat(TK_STRING);
       break;
     default:
       error(ERR_INVALIDFACTOR, lookAhead->lineNo, lookAhead->colNo);

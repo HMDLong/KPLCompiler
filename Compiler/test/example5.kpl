@@ -1,0 +1,18 @@
+PROGRAM EXAMPLE5;
+CONST STR = "hi i'm kpl";
+VAR I:INTEGER;
+    J:INTEGER;
+    M:STRING;
+    N:INTEGER;
+BEGIN
+    CALL WRITEI(6 % 4 * 2);
+    M := "helloworld!";
+    do
+        while i < 10 do
+            begin
+                i := i + 1;
+                while j < 10 do
+                    j := j + 1
+            end
+    while n < 10;
+END.
